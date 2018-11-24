@@ -1,6 +1,5 @@
-from modules.xmlParser import XmlParser  # Модуль конвертации xdb->ram
-from modules.ram_dbd import RamDbd  # Модуль конвертации ram->db
-import os.path  # Модуль для работы с путями
+from modules.xmlMaker import XmlMaker  # Модуль конвертации ram->xdb
+from modules.dbd_ram import DbdRam  # Модуль конвертации db->ram
 import argparse  # Загружаем стандартную библиотеку обработки параметров консоли
 
 
@@ -10,21 +9,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Программа преобразования данных.')
 
     # Добавляем в парсер параметр файла (в сокращенном и полном виде). Default - расположение по умолчанию.
-    parser.add_argument('-f', '--file', default='materials/tasks.xdb',
+    parser.add_argument('-f', '--file', default='materials/tasks.db',
                         help='Преобразование файла XML представления в RAM представление.')
 
     args = parser.parse_args()  # Парсим добавленные параметры и запоминаем их в args
 
-    if not os.path.exists(args.file):
-        print("Файла {0} не существует.".format(args.file))
-        exit(-1)
-
-    ram = XmlParser(args.file).make_ram()
+    ram = DbdRam(args.file).schema
 
     # Выводим RAM представление на экран
     test = ram.__dict__
     # Вывод информации о схеме
-    print('Преобразованная в память XML схема:\n\n<?xml version="1.0" encoding="utf-8"?>')
+    print('Преобразованная в память SQL схема:\n\n<?xml version="1.0" encoding="utf-8"?>')
     print("dbd_schema", end=' ')
     for key in ram.__dict__:
         # Выписываем атрибуты не-списки
@@ -61,7 +56,10 @@ if __name__ == "__main__":
             print(index.__dict__)
         print()
 
-    # Записываем в новый файл ковертированное ram-представление
-    dbd_create = RamDbd(args.file.replace('.xdb', '.db'), ram)
+    xml2 = XmlMaker(ram).make_xdb()
 
-    print("Конвертация завершена.\n Новый файл - tasks.db")
+    # Записываем в новый файл ковертированное ram-представление
+    with open("materials/tasks2.xdb", "wb") as f:
+        f.write(xml2.toprettyxml(indent="  ", encoding="utf-8"))
+
+    print("Конвертация завершена.\n Новый файл - tasks.xdb\n")
