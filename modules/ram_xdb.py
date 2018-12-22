@@ -30,20 +30,21 @@ class XmlMaker:
         main_domain_node = self.root.createElement("domains")  # Создаем узел-контейнер доменов
         # Проходим по данным доменов в памяти и заполняем узлы
         for domain in self.ram.domains:
-            domain_node = self.root.createElement("domain")
+            if not domain.unnamed:
+                domain_node = self.root.createElement("domain")
 
-            for attr in Domain.domain_attr:
-                if getattr(domain, attr) is not None:
-                    domain_node.setAttribute(attr, str(getattr(domain, attr)))
-                if attr == "precision":
-                    props = list()  # Создаем список props домена
-                    for prop in Domain.domain_props:  # Смотрим какие props имеют значение True
-                        if getattr(domain, prop):
-                            props.append(prop)
-                    if props:  # Заполняем список
-                        domain_node.setAttribute("props", ", ".join(props))
+                for attr in Domain.domain_attr:
+                    if getattr(domain, attr) is not None:
+                        domain_node.setAttribute(attr, str(getattr(domain, attr)))
+                    if attr == "precision":
+                        props = list()  # Создаем список props домена
+                        for prop in Domain.domain_props:  # Смотрим какие props имеют значение True
+                            if getattr(domain, prop):
+                                props.append(prop)
+                        if props:  # Заполняем список
+                            domain_node.setAttribute("props", ", ".join(props))
 
-            main_domain_node.appendChild(domain_node)  # Добавляем готовый узел в список доменов
+                main_domain_node.appendChild(domain_node)  # Добавляем готовый узел в список доменов
         return main_domain_node  # Возвращаем узел контейнер
 
     def fill_in_tables(self):
@@ -80,23 +81,44 @@ class XmlMaker:
 
     def fill_in_fields(self, table):
         fields = []
-
         for field in table.fields:
             # Создаём дочерний узел
             field_node = self.root.createElement("field")
-
-            for attr in Field.field_attr:
-                if attr == "domain":
-                    field_node.setAttribute(attr, str(field.domain.name))
-                elif getattr(field, attr) is not None:
-                    field_node.setAttribute(attr, str(getattr(field, attr)))
-                if attr == "description":
-                    props = list()  # Создаем список props поля
-                    for prop in Field.field_props:  # Смотрим какие props имеют значение True
-                        if getattr(field, prop):
-                            props.append(prop)
-                    if props:  # Заполняем список
-                        field_node.setAttribute("props", ", ".join(props))
+            if not field.domain.unnamed:
+                for attr in Field.field_attr:
+                    if attr == "domain":
+                        field_node.setAttribute(attr, str(field.domain.name))
+                    elif getattr(field, attr) is not None:
+                        field_node.setAttribute(attr, str(getattr(field, attr)))
+                    if attr == "description":
+                        props = list()  # Создаем список props поля
+                        for prop in Field.field_props:  # Смотрим какие props имеют значение True
+                            if getattr(field, prop):
+                                props.append(prop)
+                        if props:  # Заполняем список
+                            field_node.setAttribute("props", ", ".join(props))
+            else:
+                for attr in Field.field_attr:
+                    if (getattr(field, attr) is not None) and (attr != "domain"):
+                        field_node.setAttribute(attr, str(getattr(field, attr)))
+                        if attr =="rname":
+                            for dom_attr in Domain.domain_attr:
+                                if getattr(field.domain, dom_attr) is not None:
+                                    field_node.setAttribute("domain." + dom_attr, str(getattr(field.domain, dom_attr)))
+                                if dom_attr == "precision":
+                                    props = list()  # Создаем список props поля
+                                    for prop in Domain.domain_props:  # Смотрим какие props имеют значение True
+                                        if getattr(field.domain, prop):
+                                            props.append(prop)
+                                    if props:  # Заполняем список
+                                        field_node.setAttribute("domain.props", ", ".join(props))
+                    if attr == "description":
+                        props = list()  # Создаем список props поля
+                        for prop in Field.field_props:  # Смотрим какие props имеют значение True
+                            if getattr(field, prop):
+                                props.append(prop)
+                        if props:  # Заполняем список
+                            field_node.setAttribute("props", ", ".join(props))
 
             fields.append(field_node)
         return fields
