@@ -39,6 +39,81 @@ INSERT_DOMAIN = """
     VALUES (?, ?, (SELECT id FROM dbd$data_types WHERE type_id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
+CREATE_TEMP_DOMAIN = """
+--
+-- Создание временной таблицы доменов
+--
+    CREATE TEMP TABLE temp_domains (
+        name varchar unique default(null),  -- имя домена
+        description varchar default(null),  -- описание
+        data_type_id integer not null,      -- идентификатор типа (dbd$data_types)
+        length integer default(null),       -- длина
+        char_length integer default(null),  -- длина в символах
+        precision integer default(null),    -- точность
+        scale integer default(null),        -- количество знаков после запятой
+        width integer default(null),        -- ширина визуализации в символах
+        align char default(null),           -- признак выравнивания
+        show_null boolean default(null),    -- нужно показывать нулевое значение?
+        show_lead_nulls boolean default(null),      -- следует ли показывать лидирующие нули?
+        thousands_separator boolean default(null),  -- нужен ли разделитель тысяч?
+        summable boolean default(null),             -- признак того, что поле является суммируемым
+        case_sensitive boolean default(null)        -- признак необходимости регистронезависимого поиска для поля
+    );
+    """
+
+INSERT_TEMP_DOMAIN = """
+--
+-- Вставка значений во временную таблицу доменов
+--
+    INSERT INTO temp_domains (
+        name,
+        description,
+        data_type_id,
+        length,
+        char_length,
+        precision,
+        scale,
+        width,
+        align,
+        show_null,
+        show_lead_nulls,
+        thousands_separator,
+        summable,
+        case_sensitive)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+SET_NAME_DOMAIN = """
+--
+-- Удаление имени у неименованных доменов
+--
+    UPDATE dbd$domains
+    SET name = ""
+    WHERE INSTR(name, 'temp_unname_')
+"""
+
+ORDERBY_TEMP_DOMAIN = """
+--
+-- Извлечение неименованных доменов без повторений
+--
+    SELECT DISTINCT
+        name,
+        description,
+        data_type_id,
+        length,
+        char_length,
+        precision,
+        scale,
+        width,
+        align,
+        show_null,
+        show_lead_nulls,
+        thousands_separator,
+        summable,
+        case_sensitive
+    FROM temp_domains;
+    """
+
 INSERT_TABLE = """
 --
 -- Вставка значений в таблицу таблиц

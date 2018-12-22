@@ -21,6 +21,7 @@ class RamDbd:
 
         self._create_schema()
         self._create_domains()
+        self._create_unnamed_domains()
         self._create_tables()
         self._create_fields()
         self._create_indexes()
@@ -42,22 +43,54 @@ class RamDbd:
     # Формирование доменов
     def _create_domains(self):
         domain_number = 0  # Текущий порядковый номер домена
-        if len(self.schema.domains) > 0:
-            # Добавляем в dbd$domain домены
-            for domain in self.schema.domains:
-                temp_domain = ()
+        # Добавляем в dbd$domains домены
+        for domain in self.schema.domains:
+            temp_domain = ()
 
-                for attr in domain.domain_attr:  # заполняем атрибуты
-                    temp_domain += empty(domain.__getattribute__(attr)),
+            for attr in domain.domain_attr:  # заполняем атрибуты
+                temp_domain += empty(domain.__getattribute__(attr)),
 
-                # Свойства домена
-                for props in domain.domain_props:  # заполняем свойства
-                    temp_domain += true(domain.__getattribute__(props)),
+            # Свойства домена
+            for props in domain.domain_props:  # заполняем свойства
+                temp_domain += true(domain.__getattribute__(props)),
 
-                domain_number += 1
-                temp_domain += "D" + str(domain_number),
-                # Вставляем значения в dbd$domains
-                self.cursor.execute(INSERT_DOMAIN, temp_domain)
+            domain_number += 1
+            temp_domain += "D" + str(domain_number),
+            # Вставляем значения в dbd$domains
+            self.cursor.execute(INSERT_DOMAIN, temp_domain)
+
+    # Создание неименованных доменов
+    def _create_unnamed_domains(self):
+        self.cursor.execute(CREATE_TEMP_DOMAIN)
+        unname = 0
+        # Добавляем в temp_domain
+        for table in self.schema.tables:
+            for field in table.fields:
+                if field.domain.unnamed:
+                    unname += 1
+                    temp_unnamed_domain = ()
+                    print(field.domain.type)
+                    if field.domain.name == "":
+                        field.domain.name = "temp_unname_" + str(unname)
+
+                    for attr in field.domain.domain_attr:
+                        temp_unnamed_domain += empty(field.domain.__getattribute__(attr)),
+
+                    # Свойства домена
+                    for props in field.domain.domain_props:
+                        temp_unnamed_domain +=  true(field.domain.__getattribute__(props)),
+
+                    self.cursor.execute(INSERT_TEMP_DOMAIN, temp_unnamed_domain)
+
+        unnamed_number = 0
+        for temp_unnamed_domain in self.cursor.execute(ORDERBY_TEMP_DOMAIN):
+            temp_unnamed = ()
+            unnamed_number += 1
+            uuid = "U" + str(unnamed_number)
+            for temp in temp_unnamed_domain:
+                temp_unnamed += temp,
+            temp_unnamed += uuid,
+            self.cursor.execute(INSERT_DOMAIN, temp_unnamed)
 
     # Формирование таблиц
     def _create_tables(self):
@@ -86,7 +119,8 @@ class RamDbd:
                 temp_field += table.fields.index(field) + 1,
                 for attr in field.field_attr:
                     if attr == 'domain':  # заполняем атрибуты
-                        temp_field += empty(field.__getattribute__(attr)).name,
+                        domain_name = field.__getattribute__(attr).name
+                        temp_field += domain_name,
                         continue
                     temp_field += empty(field.__getattribute__(attr)),
 
@@ -98,7 +132,7 @@ class RamDbd:
                 temp_field += "F" + str(field_number),
                 # Вставляем значения в dbd$fields
                 self.cursor.execute(INSERT_FIELD, temp_field)
-
+        self.cursor.execute(SET_NAME_DOMAIN)
     # Формирование индексов
     def _create_indexes(self):
         index_number = 0  # Текущий порядковый номер индекса
