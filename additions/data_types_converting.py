@@ -33,3 +33,4 @@ type_dict = {
     'PERIOD':'INTERVAL',
     'BYTE':'BYTEA'
 }
+
