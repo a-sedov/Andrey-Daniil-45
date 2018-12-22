@@ -2,7 +2,7 @@
 
 import psycopg2
 from psycopg2 import sql
-from additions.data_type_pg import *
+from additions.data_types_converting import *
 
 
 class RamDdl:
