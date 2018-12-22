@@ -50,7 +50,7 @@ class Domain:  # Класс доменов базы данных
         'width',
         'precision',
         'char_length',
-        'scale'
+        'scale',
     ]
 
     domain_props = [
@@ -66,7 +66,8 @@ class Domain:  # Класс доменов базы данных
         # Перечисление встречающихся в tasks.xdb атрибутов класса доменов
         for attr in Domain.domain_attr:
             self.__setattr__(attr, None)
-
+        self.__setattr__("unnamed", False)
+		
         # В составе props
         for props in Domain.domain_props:
             self.__setattr__(props, None)
