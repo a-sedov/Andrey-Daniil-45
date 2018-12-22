@@ -1,4 +1,4 @@
-from modules.xmlMaker import XmlMaker  # Модуль конвертации ram->xdb
+from modules.ram_xdb import XmlMaker  # Модуль конвертации ram->xdb
 from modules.dbd_ram import DbdRam  # Модуль конвертации db->ram
 import argparse  # Загружаем стандартную библиотеку обработки параметров консоли
 
@@ -44,6 +44,7 @@ if __name__ == "__main__":
         print("\nfields:")
         for field in table.fields:
             print(field.__dict__)
+            print(field.domain.__dict__)
 
         # Список ограничений каждой таблицы
         print("constraints:")
