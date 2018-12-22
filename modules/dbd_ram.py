@@ -34,12 +34,18 @@ class DbdRam:
     def _ram_domains(self):
         # Выбираем необходимый порядок нужных столбцов
         num = [1, 2, 17, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+        uid = 15
         for temp_domain in self.cursor.execute(SELECT_DOMAIN):
             domain = Domain()
             k = 0
             for attr in domain.domain_attr:
                 domain.__setattr__(attr, empty(temp_domain[num[k]]))
                 k += 1
+
+            if temp_domain[uid][0] == "U":
+                domain.__setattr__("unnamed", True)
+            else:
+                domain.__setattr__("unnamed", False)
 
             # Свойства домена
             for props in domain.domain_props:  # заполняем свойства
