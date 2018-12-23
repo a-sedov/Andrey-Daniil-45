@@ -33,7 +33,7 @@ class DbdRam:
     # Создание доменов
     def _ram_domains(self):
         # Выбираем необходимый порядок нужных столбцов
-        num = [1, 2, 17, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+        num = [1, 2, 17, 9, 4, 8, 6, 5, 7, 10, 11, 12, 13, 14]
         uid = 15
         for temp_domain in self.cursor.execute(SELECT_DOMAIN):
             domain = Domain()
