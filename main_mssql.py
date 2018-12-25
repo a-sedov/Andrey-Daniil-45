@@ -67,7 +67,7 @@ if __name__ == "__main__":
     xdb_generate = XmlMaker(ram).make_xdb()
     # Записываем в новый файл ковертированное ram-представление
     with open(args.file, "wb") as f:
-        f.write(xdb.toprettyxml(indent="  ", encoding="utf-8"))
+        f.write(xdb_generate.toprettyxml(indent="  ", encoding="utf-8"))
     print("Конвертация завершена.\n Новый файл - Northwind.xdb")
 
     ddl_generate = RamDdl(args.file.replace('.xdb', '.ddl'), ram)
