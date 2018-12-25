@@ -8,34 +8,58 @@ from additions.data_types_converting import *
 class RamDdl:
     constraint_number = 0
     index_number = 0
+    host = "localhost"
+    port = "5432"
+    database = "Northwind"
     login = "postgres"
     password = "1"
-    database = "test"
+    defer = "DEFERRABLE INITIALLY DEFERRED"
+
 
     def __init__(self, file, schema):
         try:
-            self.connect = psycopg2.connect(host="localhost",
-                                               port="5432",
-                                               database=RamDdl.database,
+            self.connect = psycopg2.connect(host=RamDdl.host,
+                                               port=RamDdl.port,
+                                               database="Northwind",
                                                user=RamDdl.login,
                                                password=RamDdl.password)
             self.cursor = self.connect.cursor()
         except (Exception) as error:
             print("Ошибка подключения к PostgreSQL", error)
-            return
+            exit(1)
 
         self.schema = schema
         self.file = file
         self.text = ""
+        self.schema_text = ""
+        self.domain_text = ""
+        self.table_text = ""
+        self.index_text = ""
+        self.primary_text = ""
+        self.foreign_text = ""
 
-        print(self.file)
         self.cursor.execute("""BEGIN TRANSACTION""")
         self._create_schemas()
         self._create_domains()
         self._create_tables()
+        self._create_indexes()
+        self._create_constraints()
         self._create_constraints_foreign()
+        self.text = self.schema_text \
+                    + self.domain_text \
+                    + self.table_text \
+                    + self.index_text \
+                    + self.primary_text \
+                    + self.foreign_text
+
         self._write_to_file()
-        self.cursor.execute(self.text)
+
+        self.cursor.execute(self.schema_text)
+        self.cursor.execute(self.domain_text)
+        self.cursor.execute(self.table_text)
+        self.cursor.execute(self.index_text)
+        self.cursor.execute(self.primary_text)
+        self.cursor.execute(self.foreign_text)
         self.connect.commit()
         self.connect.close()
 
@@ -52,14 +76,12 @@ class RamDdl:
             WHERE schema_name = '{0}'            
         """
         self.cursor.execute(sql.SQL(EXISTS_SCHEMA.format(self.schema.name.lower())))
-        #if (not self.cursor.fetchone()):
-         #   return
         create = 'CREATE SCHEMA "{0}" AUTHORIZATION {1};\n'
-        self.text += create.format(self.schema.name, RamDdl.login)
+        self.schema_text += create.format(self.schema.name, RamDdl.login)
         if self.schema.description:
             description = 'COMMENT ON SCHEMA "{0}" is '.format(self.schema.name)
             description += "'{0}';\n\n".format(self.schema.description)
-            self.text += description
+            self.schema_text += description
 
     # Создание доменов
     def _create_domains(self):
@@ -86,8 +108,8 @@ class RamDdl:
             else:
                 type = create.format(name, type, "", self.schema.name)
 
-            self.text += type
-        self.text += "\n"
+            self.domain_text += type
+        self.domain_text += "\n"
 
         for domain in self.schema.domains:
             description = domain.description
@@ -97,7 +119,7 @@ class RamDdl:
                 description = ""
             self.text += description
 
-        self.text += "\n"
+        self.domain_text += "\n"
 
     # Создание таблиц
     def _create_tables(self):
@@ -105,15 +127,9 @@ class RamDdl:
             create = 'CREATE TABLE "{0}"."{1}" (\n\t'.format(self.schema.name, table.name)
             # Добавление полей
             fields = self._create_fields(table.fields)
-            # Добавление ограничений
-            constraint = self._create_constraints(table.constraints)
 
-            # Если были ограничения
-            if len(constraint) != 0:
-                constraint = constraint[0:len(constraint)-4]
-            else:
-                fields = fields[0:len(fields)-3]
-            self.text += create + fields + constraint + "\n);\n\n"
+            fields = fields[0:len(fields)-3]
+            self.table_text += create + fields + "\n);\n\n"
 
             # Добавление описания к полям
             for field in table.fields:
@@ -125,28 +141,28 @@ class RamDdl:
                 else:
                     description = ""
 
-            self.text += description
+                self.table_text += description
 
-            # Создание индексов
+    def _create_indexes(self):
+        # Создание индексов
+        for table in self.schema.tables:
             indexes = ""
             for index in table.indexes:
                 create = 'CREATE{0}INDEX{1}ON "{2}"."{3}" ({4});\n'
                 name = ' '
                 uniq = " "
                 field = '"{0}"'.format(index.field)
-
                 if index.name:
-                    name = ' "{0)" '.format(index.name)
-
+                    name = ' "{0}" '.format(index.name)
                 if index.uniqueness:
                     uniq = " UNIQUE "
-
-                self.text += create.format(uniq,
+                index.uniqueness = ' '
+                self.index_text += create.format(uniq,
                                            name,
                                            self.schema.name,
                                            table.name,
                                            field)
-            self.text += "\n\n"
+        self.index_text += "\n\n"
 
     # Создание полей
     def _create_fields(self, table):
@@ -156,8 +172,8 @@ class RamDdl:
             name = '"{0}"\t'.format(field.name)
 
             # Выравниваем поля
-            for i in range(3, 13, 2):
-                if len(name) < i: tabs += "\t"
+            for i in range(8, 17, 3):
+                if len(name) + 2 < i: tabs += "\t"
 
             # Если неименованный домен
             if field.domain.unnamed:
@@ -177,10 +193,12 @@ class RamDdl:
                     scale = ""
 
                 # Смотрим тип переменной
-                if type != 'CHAR' and type != 'VARCHAR':
-                    type = '{1}{2},\n\t'.format(type, precision + scale)
-                else:
+                if type == "DECIMAL":
+                    type = '{0}{1}{2},\n\t'.format(type, precision, scale)
+                elif type == 'CHAR' or type == 'VARCHAR':
                     type = '{0}{1},\n\t'.format(type, length)
+                else:
+                    type ='{0},\n\t'.format(type)
 
             else:
                 type = '"{0}",\n\t'.format(field.domain.name)
@@ -190,25 +208,61 @@ class RamDdl:
         return fields
 
     # Создание ограничений
-    def _create_constraints(self, table):
-        constr = ""
-        for constraint in table:
-            if constraint.kind == "FOREIGN":
-                return constr
+    def _create_constraints(self):
+        for table in self.schema.tables:
+            pkeys = ""
+            pk_count = 0
+            for constraint in table.constraints:
+                if constraint.kind == "PRIMARY":
+                    pk_count += 1
+            if pk_count > 1:
+                constr = ""
+                query = 'ALTER TABLE "{0}"."{1}" ' \
+                        'ADD CONSTRAINT "{2}" PRIMARY KEY({3}) {4};\n'
 
-            query = 'CONSTRAINT {0} {1} ("{2}"), \n\t'
-            reference = constraint.reference
-            if constraint.name:
-                name = '"{0}"'.format(constraint.name)
+                for constraint in table.constraints:
+                    if constraint.kind != "PRIMARY":
+                        continue
+
+                    if constraint.name:
+                        name = '{0}'.format(constraint.name)
+                    else:
+                        name = '{0}'.format("Constrain_" + str(RamDdl.constraint_number))
+                        RamDdl.constraint_number += 1
+
+                    pkeys += '"{0}",'.format(constraint.items)
+
+                pkeys = pkeys[0:len(pkeys)-1]
+                constr = query.format(self.schema.name,
+                                       table.name,
+                                       name,
+                                       pkeys,
+                                       RamDdl.defer
+                                    )
+                self.primary_text += constr
             else:
-                name = '"{0}"'.format("Constrain_" + str(RamDdl.constraint_number))
-                RamDdl.constraint_number += 1
-            if constraint.kind == "PRIMARY":
-                kind = "PRIMARY KEY"
-            else:
-                kind = constraint.kind
-            constr += query.format(name, kind, constraint.items)
-        return constr
+                for constraint in table.constraints:
+                    constr = ""
+                    if constraint.kind != "PRIMARY":
+                        continue
+
+                    query = 'ALTER TABLE "{0}"."{1}" ' \
+                            'ADD CONSTRAINT "{2}" PRIMARY KEY("{3}") {4};\n'
+
+                    if constraint.name:
+                        name = '{0}'.format(constraint.name)
+                    else:
+                        name = '{0}'.format("Constrain_" + str(RamDdl.constraint_number))
+                        RamDdl.constraint_number += 1
+
+                    constr += query.format(self.schema.name,
+                                           table.name,
+                                           name,
+                                           constraint.items,
+                                           RamDdl.defer
+                                           )
+                    self.primary_text += constr
+        self.primary_text += "\n\n"
 
     # Создание ограничений (внешних ключей)
     def _create_constraints_foreign(self):
@@ -216,7 +270,8 @@ class RamDdl:
             for constraint in table.constraints:
                 if constraint.kind == "PRIMARY":
                     continue
-                query = 'ALTER TABLE "{0}"."{1}" ADD CONSTRAINT "{2}" FOREIGN KEY("{3}")'
+                query = 'ALTER TABLE "{0}"."{1}" ' \
+                        'ADD CONSTRAINT "{2}" FOREIGN KEY("{3}")'
                 if constraint.name:
                     name = '{0}'.format(constraint.name)
                 else:
@@ -232,7 +287,7 @@ class RamDdl:
                 if true(constraint.full_cascading_delete) \
                     or true(constraint.cascading_delete):
                     query += " ON DELETE CASCADE"
-                self.text += query + ";\n"
+                self.foreign_text += query +  RamDdl.defer + ";\n"
 
     # Поиск первичного ключа для внешнего
     def _reference_key(self, name):
