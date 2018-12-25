@@ -69,7 +69,7 @@ class RamDdl:
             query = ""
             create = 'CREATE DOMAIN "{3}".{0} {1}{2};\n'
             name = '"{0}"'.format(domain.name)
-            type = type_dict[domain.type]
+            type = type_dict[domain.type.upper()]
             length = domain.char_length
             precision = domain.precision
             scale = domain.scale
@@ -162,7 +162,7 @@ class RamDdl:
             # Если неименованный домен
             if field.domain.unnamed:
                 # Конвертируем исходный тип в тип PostgreSql
-                type = type_dict[field.domain.type]
+                type = type_dict[field.domain.type.upper()]
                 length = field.domain.char_length
                 precision = field.domain.precision
                 scale = field.domain.scale
