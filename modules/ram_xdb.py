@@ -98,20 +98,21 @@ class XmlMaker:
                         if props:  # Заполняем список
                             field_node.setAttribute("props", ", ".join(props))
             else:
+
                 for attr in Field.field_attr:
                     if (getattr(field, attr) is not None) and (attr != "domain"):
                         field_node.setAttribute(attr, str(getattr(field, attr)))
-                        if attr =="rname":
-                            for dom_attr in Domain.domain_attr:
-                                if getattr(field.domain, dom_attr) is not None:
-                                    field_node.setAttribute("domain." + dom_attr, str(getattr(field.domain, dom_attr)))
-                                if dom_attr == "precision":
-                                    props = list()  # Создаем список props поля
-                                    for prop in Domain.domain_props:  # Смотрим какие props имеют значение True
-                                        if getattr(field.domain, prop):
-                                            props.append(prop)
-                                    if props:  # Заполняем список
-                                        field_node.setAttribute("domain.props", ", ".join(props))
+                    if (attr == "domain"):
+                        for dom_attr in Domain.domain_attr:
+                            if getattr(field.domain, dom_attr) is not None:
+                                field_node.setAttribute("domain." + dom_attr, str(getattr(field.domain, dom_attr)))
+                            if dom_attr == "precision":
+                                props = list()  # Создаем список props поля
+                                for prop in Domain.domain_props:  # Смотрим какие props имеют значение True
+                                    if getattr(field.domain, prop):
+                                        props.append(prop)
+                                if props:  # Заполняем список
+                                    field_node.setAttribute("domain.props", ", ".join(props))
                     if attr == "description":
                         props = list()  # Создаем список props поля
                         for prop in Field.field_props:  # Смотрим какие props имеют значение True
