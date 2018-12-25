@@ -13,12 +13,11 @@ if __name__ == "__main__":
 
     # Добавляем в парсер параметр файла (в сокращенном и полном виде). Default - расположение по умолчанию.
     parser.add_argument('-f', '--file', default='materials/Northwind.xdb',
-							help='Преобразование RAM представления в XDB файл' \
-								'и перенос данных из исходной в целевую БД.'
-						)
+                        help='Преобразование RAM представления в XDB файл'
+                        'и перенос данных из исходной в целевую БД.'
+                        )
 
     args = parser.parse_args()  # Парсим добавленные параметры и запоминаем их в args
-
 
     ram = MSSQL_RAM()
     ram.ram_create()
@@ -65,16 +64,16 @@ if __name__ == "__main__":
             print(index.__dict__)
         print()
 
-	xdb_generate = XmlMaker(ram).make_xdb()
-	# Записываем в новый файл ковертированное ram-представление
-	with open(args.file, "wb") as f:
-		f.write(xdb.toprettyxml(indent="  ", encoding="utf-8"))	
-	print("Конвертация завершена.\n Новый файл - Northwind.xdb")	
-	
+    xdb_generate = XmlMaker(ram).make_xdb()
+    # Записываем в новый файл ковертированное ram-представление
+    with open(args.file, "wb") as f:
+        f.write(xdb.toprettyxml(indent="  ", encoding="utf-8"))
+    print("Конвертация завершена.\n Новый файл - Northwind.xdb")
+
     ddl_generate = RamDdl(args.file.replace('.xdb', '.ddl'), ram)
-	# Записываем в новый файл ковертированное ram-представление
+    # Записываем в новый файл ковертированное ram-представление
     print("Конвертация завершена.\n Новый файл - Northwind.ddl")
-	
-	# Переносим данные из исходной в целевую БД
+
+    # Переносим данные из исходной в целевую БД
     pg_generate = MSSQL_PG(ram)
-	print("Перенос данных завершен.")
+    print("Перенос данных завершен.")
