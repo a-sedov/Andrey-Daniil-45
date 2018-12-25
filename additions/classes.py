@@ -50,7 +50,7 @@ class Domain:  # Класс доменов базы данных
         'width',
         'precision',
         'char_length',
-        'scale',
+        'scale'
     ]
 
     domain_props = [
