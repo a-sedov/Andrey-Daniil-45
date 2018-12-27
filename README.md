@@ -30,9 +30,9 @@ postgres_ddl_generator - модуль генерации DDL целевой БД
 
 Файлы исходных .xdb файлов (tasks.xdb и prjadm.xdb) расположены в папке materials.  
 
-Модуль sql_requests содержит sql-запросы и расположен в папке modules.  
-Модуль ms_sql_requests содержит sql-запросы и расположен в папке modules.  
-Модуль data_types_converting содержит сопоставление типов данных исходной и целевой БД PostgreSQL и расположен в папке modules.  
+Модуль sql_requests содержит sql-запросы и расположен в папке additions.  
+Модуль ms_sql_requests содержит sql-запросы и расположен в папке additions.  
+Модуль data_types_converting содержит сопоставление типов данных исходной и целевой БД PostgreSQL и расположен в папке additions.  
 
 ### Модуль minidom
 
