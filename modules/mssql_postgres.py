@@ -2,6 +2,7 @@ import psycopg2
 import pyodbc
 from psycopg2 import sql
 
+
 class MSSQL_PG:
     constraint_number = 0
     index_number = 0
@@ -28,11 +29,13 @@ class MSSQL_PG:
             print("Ошибка подключения к MSSQL", error)
 
         try:
-            self.pg_conn = psycopg2.connect(host=MSSQL_PG.host,
-                                               port=MSSQL_PG.pg_port,
-                                               database=MSSQL_PG.database,
-                                               user=MSSQL_PG.login,
-                                               password=MSSQL_PG.password)
+            self.pg_conn = psycopg2.connect(
+                                            host=MSSQL_PG.host,
+                                            port=MSSQL_PG.pg_port,
+                                            database=MSSQL_PG.database,
+                                            user=MSSQL_PG.login,
+                                            password=MSSQL_PG.password
+                                           )
             self.pg_cursor = self.pg_conn.cursor()
         except (Exception) as error:
             print("Ошибка подключения к PostgreSQL", error)
@@ -42,39 +45,27 @@ class MSSQL_PG:
 
         self.pg_cursor.execute("START TRANSACTION DEFERRABLE")
         self.pg_cursor.execute("""SET CONSTRAINTS ALL DEFERRED""")
-        #try:
         self._create_tables()
-        #except (Exception) as error:
-            #print("Ошибка переноса данных", error)
+        self.pg_cursor.execute("""SET CONSTRAINTS ALL DEFERRED""")
         try:
-            self.pg_cursor.execute("""SET CONSTRAINTS ALL DEFERRED""")
             self.pg_conn.commit()
         except (Exception) as error:
-            print("ОШИБКА", error)
-
+            print(error)
         self.pg_conn.close()
 
     def _create_tables(self):
         SELECT_FIELD = 'SELECT * FROM "{0}"'
         INSERT_FIELD = 'INSERT INTO dbo."{0}" VALUES ({1})'
 
+        # Заполнение данными
         for table in self.schema.tables:
-            field_name = ""
-            value = ""
-            type = ()
-            text = ""
-            for field in table.fields:
-                field_name += '"{0}",'.format(field.name)
-                value += "?,"
-                type += field.domain.name.upper(),
-
-            field_name = field_name[0:len(field_name)-1]
-            value = value[0:len(value)]
-            SEL_FIELD = SELECT_FIELD.format(table.name, field_name, value)
+            SEL_FIELD = SELECT_FIELD.format(table.name)
             fields = self.ms_cursor.execute(SEL_FIELD).fetchall()
 
+            # Перебор полей
             for field in fields:
                 value = ()
+                # Перебор значений поля
                 for i in field:
                     if i is True:
                         value += str(1),
@@ -91,6 +82,7 @@ class MSSQL_PG:
                 kolvo = ",".join(['%s'] * len(field))
                 INS_FIELD = "{0}".format(INSERT_FIELD.format(table.name, kolvo))
 
+                # Попытка занести данные полей в таблицу
                 try:
                     self.pg_cursor.execute("""SET CONSTRAINTS ALL DEFERRED""")
                     self.pg_cursor.execute(INS_FIELD, value)
